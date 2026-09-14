@@ -25,6 +25,12 @@ const NEWS_LINKS = [
   { href: "/news/sports", label: "Sports News" },
 ];
 
+/** Monetag Direct Link — external, so it opens in a new tab and never navigates the site away. */
+const SPONSORED_LINK = {
+  href: "https://omg10.com/4/11799670",
+  label: "Sponsored",
+};
+
 /** "/" only matches itself; every other tab also owns its sub-routes. */
 function isActive(pathname: string, href: string): boolean {
   return href === "/" ? pathname === "/" : pathname.startsWith(href);
@@ -205,6 +211,15 @@ export default function Navbar() {
                 </ul>
               ) : null}
             </div>
+
+            <a
+              href={SPONSORED_LINK.href}
+              target="_blank"
+              rel="sponsored noopener noreferrer"
+              className="font-semibold text-brand-bright transition hover:text-white"
+            >
+              {SPONSORED_LINK.label}
+            </a>
           </nav>
         </div>
 
@@ -266,6 +281,18 @@ export default function Navbar() {
                   );
                 })}
               </ul>
+            </li>
+
+            <li className="mt-2 border-t border-white/10 pt-2">
+              <a
+                href={SPONSORED_LINK.href}
+                target="_blank"
+                rel="sponsored noopener noreferrer"
+                onClick={() => setMenuOpen(false)}
+                className="block border-l-2 border-transparent px-4 py-3 text-base font-semibold text-brand-bright transition hover:bg-white/5 hover:text-white"
+              >
+                {SPONSORED_LINK.label}
+              </a>
             </li>
           </ul>
         </nav>

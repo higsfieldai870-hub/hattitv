@@ -18,6 +18,7 @@ const BAIT_CLASSES =
 /** Ad scripts the site really requests; both are on the standard blocklists. */
 const AD_PROBES = [
   "https://5gvci.com/act/files/tag.min.js?z=11723367",
+  "https://al5sm.com/tag.min.js",
   "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js",
 ];
 
