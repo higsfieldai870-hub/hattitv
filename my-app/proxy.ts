@@ -6,18 +6,20 @@ import { playerGate } from "@/lib/playerGate";
  * Domain gate for the player pages — the rule itself lives in
  * `lib/playerGate.ts`.
  *
- * A player URL that does not belong on this host is rewritten to a route that
- * calls `notFound()`, so a typed URL, a bookmark and a crawler all get a plain
- * 404 while the address bar keeps the URL they asked for. The mirror's own
- * responses are marked noindex, so the throwaway domain can never take over the
- * main domain's search results.
+ * On the public domain a player URL is rewritten to a route that calls
+ * `notFound()`, so a typed URL, a bookmark and a crawler all get a plain 404
+ * while the address bar keeps the URL they asked for. On the mirror the
+ * opposite happens: players are served (and marked noindex, so the throwaway
+ * domain can never take over the public one in search results) and every other
+ * URL is sent back to the public domain.
  *
- * Nothing on the site links to a player URL on a blocked host: those links are
+ * Nothing on the public domain links to a player URL there: those links are
  * built with `playerHref()` and point at the mirror directly.
  */
 export function proxy(request: NextRequest) {
-  // Player pages are only ever fetched. Rewriting an action request would send
-  // it to a route that 404s and drop its body, so those pass through.
+  // Pages are only ever fetched. Bouncing an action request would 404 it (or,
+  // on the mirror, send it to another origin) and drop its body, so those pass
+  // through untouched.
   if (request.method !== "GET" && request.method !== "HEAD") {
     return NextResponse.next();
   }
@@ -29,10 +31,18 @@ export function proxy(request: NextRequest) {
       request.headers.get("host") ??
       request.nextUrl.host,
     request.nextUrl.pathname,
+    request.nextUrl.search,
   );
 
   if (decision.action === "notFound") {
     return NextResponse.rewrite(new URL("/player-not-found", request.url));
+  }
+
+  if (decision.action === "redirect") {
+    // 307: the mirror is a temporary address, so nothing may cache the hop.
+    const response = NextResponse.redirect(decision.url, 307);
+    response.headers.set("cache-control", "no-store");
+    return response;
   }
 
   if (decision.action === "noindex") {
