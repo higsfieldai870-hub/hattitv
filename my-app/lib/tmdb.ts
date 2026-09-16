@@ -522,7 +522,7 @@ export function toCardItem(item: TmdbItem): CardItem {
     title: getTitle(item),
     mediaType: getMediaType(item),
     category: getCategorySlug(item),
-    image: thumbUrl(item.backdrop_path ?? item.poster_path),
+    image: posterUrl(item.poster_path ?? item.backdrop_path),
     year: getYear(item),
     rating: item.vote_average ? Math.round(item.vote_average * 10) : null,
     overview: item.overview ?? "",

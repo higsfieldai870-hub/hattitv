@@ -15,11 +15,34 @@ import {
   pickTrailer,
 } from "@/lib/tmdb";
 
+/** How far down the trending list to look for a title with a trailer. */
+const TRAILER_CANDIDATES = 6;
+
 export default async function Hero() {
   const trending = await getList("/trending/all/week");
-  const featured = trending.find((item) => item.backdrop_path && item.overview);
+  const candidates = trending
+    .filter((item) => item.backdrop_path && item.overview)
+    .slice(0, TRAILER_CANDIDATES);
 
-  if (!featured) return null;
+  if (candidates.length === 0) return null;
+
+  // The hero exists to play a trailer, so it features the highest-trending
+  // title that has one. Lookups stop at the first hit (usually the top title);
+  // if none of the candidates has a trailer, the top one keeps its backdrop.
+  let featured = candidates[0];
+  let trailerKey: string | null = null;
+  for (const candidate of candidates) {
+    try {
+      const details = await getDetails(getMediaType(candidate), candidate.id);
+      trailerKey = pickTrailer(details.videos?.results);
+    } catch (error) {
+      console.error(`Failed to load hero trailer for ${candidate.id}`, error);
+    }
+    if (trailerKey) {
+      featured = candidate;
+      break;
+    }
+  }
 
   const mediaType = getMediaType(featured);
   const title = getTitle(featured);
@@ -27,15 +50,6 @@ export default async function Hero() {
   // The CTA has to point wherever the player actually lives: on a host that
   // 404s player URLs that is the mirror, not this origin.
   const host = await requestHost();
-
-  // Trailer lookup is a second request; a missing one just leaves the backdrop.
-  let trailerKey: string | null = null;
-  try {
-    const details = await getDetails(mediaType, featured.id);
-    trailerKey = pickTrailer(details.videos?.results);
-  } catch (error) {
-    console.error("Failed to load hero trailer", error);
-  }
 
   return (
     <section className="relative h-[56vw] max-h-[85vh] min-h-[520px] w-full overflow-hidden">

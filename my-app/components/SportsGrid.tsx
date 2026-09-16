@@ -48,7 +48,7 @@ export default function SportsGrid({
       </div>
 
       {matches.length ? (
-        <div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-4">
+        <div className="grid grid-cols-2 gap-x-3 gap-y-5 sm:grid-cols-[repeat(auto-fill,minmax(15rem,1fr))] sm:gap-x-4 sm:gap-y-6">
           {matches.map((match) => (
             <SportsMatchCard key={match.id} match={match} origin={origin} />
           ))}

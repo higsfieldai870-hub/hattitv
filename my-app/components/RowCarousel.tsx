@@ -57,7 +57,7 @@ export default function RowCarousel({
         <div
           ref={scrollerRef}
           onScroll={syncArrows}
-          className="no-scrollbar flex gap-2 overflow-x-auto scroll-smooth px-4 py-8 md:px-12"
+          className="no-scrollbar flex items-start gap-3 overflow-x-auto scroll-smooth px-4 pt-1 pb-6 md:gap-4 md:px-12"
         >
           {items.map((item) => (
             <MediaCard key={`${item.mediaType}-${item.id}`} item={item} />

@@ -1,4 +1,4 @@
-import MediaCard from "@/components/MediaCard";
+import MediaCard, { CARD_GRID } from "@/components/MediaCard";
 import type { CardItem } from "@/lib/tmdb";
 
 /** Search results and "More Like This" read better as a wrapping grid. */
@@ -14,9 +14,13 @@ export default function MediaGrid({
       <h2 className="mb-6 text-xl font-semibold text-neutral-200 md:text-2xl">
         {title}
       </h2>
-      <div className="flex flex-wrap gap-x-2 gap-y-6">
+      <div className={CARD_GRID}>
         {items.map((item) => (
-          <MediaCard key={`${item.category}-${item.id}`} item={item} />
+          <MediaCard
+            key={`${item.category}-${item.id}`}
+            item={item}
+            variant="grid"
+          />
         ))}
       </div>
     </section>

@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import CastCarousel from "@/components/CastCarousel";
 import EpisodePicker from "@/components/EpisodePicker";
-import MediaCard from "@/components/MediaCard";
+import MediaCard, { CARD_GRID } from "@/components/MediaCard";
 import ScoreRing from "@/components/ScoreRing";
 import WatchServerPlayer from "@/components/WatchServerPlayer";
 import type { StreamSource, WatchServer } from "@/lib/streaming";
@@ -299,11 +299,12 @@ export default function WatchStage({
               {related.length ? (
                 <section className="mt-12">
                   <SectionHeading>More Like This</SectionHeading>
-                  <div className="flex flex-wrap gap-x-2 gap-y-6">
+                  <div className={CARD_GRID}>
                     {related.map((item) => (
                       <MediaCard
                         key={`${item.category}-${item.id}`}
                         item={item}
+                        variant="grid"
                       />
                     ))}
                   </div>

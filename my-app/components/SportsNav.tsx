@@ -27,8 +27,8 @@ export default function SportsNav({
             className={[
               "flex flex-none items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-xs font-semibold tracking-wide whitespace-nowrap transition",
               selected
-                ? "border-brand bg-brand/20 text-white shadow-[0_0_20px_-6px_rgba(235,18,24,0.7)]"
-                : "border-white/10 bg-white/5 text-neutral-300 hover:border-white/25 hover:text-white",
+                ? "border-brand bg-brand text-white shadow-[0_0_20px_-6px_rgba(235,18,24,0.7)]"
+                : "border-white/10 bg-white/5 text-neutral-300 hover:border-brand/60 hover:text-white",
             ].join(" ")}
           >
             {sport.id ? <span aria-hidden>{sportIcon(sport.id)}</span> : null}
