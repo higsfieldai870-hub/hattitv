@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { CATEGORIES } from "@/lib/tmdb";
 import { NEWS_TOPICS } from "@/lib/news";
@@ -30,11 +31,11 @@ export default function Footer() {
             aria-label={`${SITE_NAME} home`}
             className="mb-4 inline-flex items-center"
           >
-            <img
+            <Image
               src="/logo.png"
               alt={SITE_NAME}
-              width={1254}
-              height={1254}
+              width={48}
+              height={48}
               className="h-12 w-auto"
             />
           </Link>

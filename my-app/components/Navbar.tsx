@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
@@ -123,11 +124,12 @@ export default function Navbar() {
             aria-label={`${SITE_NAME} home`}
             className="flex shrink-0 items-center"
           >
-            <img
+            <Image
               src="/logo.png"
               alt={SITE_NAME}
-              width={1254}
-              height={1254}
+              width={44}
+              height={44}
+              preload
               className="h-9 w-auto sm:h-11"
             />
           </Link>

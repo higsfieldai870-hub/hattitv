@@ -1,5 +1,7 @@
+import Image from "next/image";
 import Link from "next/link";
 import KickoffTime from "@/components/KickoffTime";
+import { canOptimize } from "@/lib/images";
 import { isLive, sportIcon, type SportsMatch } from "@/lib/sports";
 
 /** The two crests facing off, used when a fixture has no poster art. */
@@ -8,13 +10,14 @@ function BadgeFace({ match }: { match: SportsMatch }) {
     <div className="absolute inset-0 flex items-center justify-center gap-4 bg-gradient-to-br from-neutral-900 via-black to-neutral-900 px-4">
       {[match.home, match.away].map((team, index) =>
         team?.badge ? (
-          <img
+          <Image
             key={`${team.name}-${index}`}
             src={team.badge}
             alt=""
             aria-hidden
-            loading="lazy"
-            decoding="async"
+            width={56}
+            height={56}
+            unoptimized={!canOptimize(team.badge)}
             className="h-12 w-12 object-contain drop-shadow-lg sm:h-14 sm:w-14"
           />
         ) : (
@@ -42,12 +45,13 @@ export default function SportsMatchCard({ match }: { match: SportsMatch }) {
     >
       <div className="relative aspect-video w-full overflow-hidden rounded-xl bg-neutral-900 ring-1 ring-white/10 transition group-hover:ring-2 group-hover:ring-brand group-focus-visible:ring-2 group-focus-visible:ring-brand">
         {match.poster ? (
-          <img
+          <Image
             src={match.poster}
             alt={match.title}
-            loading="lazy"
-            decoding="async"
-            className="absolute inset-0 h-full w-full object-cover"
+            fill
+            sizes="(min-width: 640px) 440px, 100vw"
+            unoptimized={!canOptimize(match.poster)}
+            className="object-cover"
           />
         ) : (
           <BadgeFace match={match} />

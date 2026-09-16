@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
@@ -39,12 +40,12 @@ function EpisodeCard({
         }`}
       >
         {episode.still ? (
-          <img
+          <Image
             src={episode.still}
             alt=""
-            loading="lazy"
-            decoding="async"
-            className={`absolute inset-0 h-full w-full object-cover transition duration-300 ${
+            fill
+            sizes="(min-width: 640px) 240px, 208px"
+            className={`object-cover transition duration-300 ${
               isActive ? "" : "opacity-75 group-hover/ep:opacity-100"
             }`}
           />

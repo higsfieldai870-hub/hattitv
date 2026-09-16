@@ -1,3 +1,4 @@
+import Image from "next/image";
 import ArticleTime from "@/components/ArticleTime";
 import type { NewsArticle } from "@/lib/news";
 
@@ -16,12 +17,14 @@ export default function NewsCard({ article }: { article: NewsArticle }) {
       >
         <div className="relative aspect-video w-full overflow-hidden bg-neutral-800">
           {article.image ? (
-            <img
+            // Thumbnails come from whichever publisher wrote the story, so
+            // they cannot be allowlisted for the optimizer (see lib/images.ts).
+            <Image
               src={article.image}
               alt=""
-              loading="lazy"
-              decoding="async"
-              className="absolute inset-0 h-full w-full object-cover transition duration-300 group-hover:scale-105"
+              fill
+              unoptimized
+              className="object-cover transition duration-300 group-hover:scale-105"
             />
           ) : (
             <div className="flex h-full items-center justify-center px-3 text-center text-xs text-neutral-500">

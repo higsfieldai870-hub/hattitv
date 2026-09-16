@@ -116,4 +116,50 @@ servers. The other three need configuring:
 Every provider is optional and every lookup is failure-tolerant: a host that is
 down, rate-limited or has changed shape contributes no servers and leaves the
 rest of the page working.
+
+## Player domain gate (main domain → mirror)
+
+The same build runs on two hosts. The main domain keeps the search traffic and
+never serves the embeds; a throwaway mirror (`*.vercel.app`, or anything else
+temporary) serves them.
+
+```bash
+VIDEO_PLAYER_BLOCKED=hattitv.com          # hosts where players are not served
+VIDEO_PLAYER_UNBLOCK=hattitv.vercel.app   # host that serves them, and receives the hop
+```
+
+Both accept a comma-separated list; `www.` and the port are ignored when
+matching, so `hattitv.com` also covers `www.hattitv.com`. Set the **same two
+values on both Vercel projects** — on the mirror the request arrives on the
+`vercel.app` host, which is not the blocked one, so nothing is redirected and
+the player simply runs.
+
+| Request | Result |
+| --- | --- |
+| `hattitv.com/movies/1101383/watch-movie` | `307` → `hattitv.vercel.app/movies/1101383/watch-movie` |
+| `hattitv.com/tv-shows/108978/watch-series?season=2&episode=5` | `307` → same path + query on the mirror |
+| `hattitv.com/sports/football/{matchId}` | `307` → mirror |
+| `hattitv.vercel.app/tv-shows/108978/watch-series` | plays (response carries `x-robots-tag: noindex, follow`) |
+| `hattitv.com/movies/1101383` (detail page) | untouched |
+| `hattitv.com/sports`, `/sports/football`, `/news`, `/search` | untouched |
+| `localhost:3000` | untouched (the gate is off unless `VIDEO_PLAYER_BLOCKED` is set) |
+
+Gated paths are the two player routes — `/{category}/{id}/watch-movie`,
+`/{category}/{id}/watch-series` — and the live-match player
+`/sports/{sport}/{matchId}`. **Trailer pages stay on the main domain** (they
+embed YouTube, not a stream): add `|watch-trailer` to `PLAYER_PATHS` in
+`lib/playerGate.ts` to move them too.
+
+Details worth knowing:
+
+- `307`, not `308` — the hop is temporary, so search engines keep the main
+  domain's URL as the one that answers the query.
+- The mirror's copies are `noindex, follow` so the temporary domain cannot
+  replace the main one in search results. Delete the `noindex` branch in
+  `proxy.ts` if you ever want the mirror indexed.
+- If `VIDEO_PLAYER_BLOCKED` is set but `VIDEO_PLAYER_UNBLOCK` is empty/misspelled,
+  the gate fails **open** (players are served directly and a warning is logged)
+  rather than taking playback down.
+- `NEXT_PUBLIC_SITE_URL` still points at `hattitv.com` in both deployments, so
+  canonicals, sitemap and JSON-LD keep naming the main domain.
 # filmhouse

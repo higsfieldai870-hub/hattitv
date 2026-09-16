@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 /**
@@ -57,10 +58,14 @@ export default function HeroPlayer({
   return (
     <>
       {backdrop ? (
-        <img
+        // The backdrop is the page's largest paint, so it skips lazy loading.
+        <Image
           src={backdrop}
           alt={title}
-          className="absolute inset-0 h-full w-full object-cover object-top"
+          fill
+          preload
+          sizes="100vw"
+          className="object-cover object-top"
         />
       ) : (
         <div className="absolute inset-0 bg-neutral-800" />
