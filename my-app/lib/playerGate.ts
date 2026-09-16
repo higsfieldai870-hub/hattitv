@@ -1,18 +1,23 @@
 /**
- * Which host is allowed to serve the video-player pages.
+ * Where the player pages are allowed to exist.
  *
  * The same build runs on two hosts: the public domain, which keeps the search
- * traffic and must never carry the embeds, and a throwaway mirror that does the
- * streaming. `proxy.ts` calls the pure decision function below on every request
- * so the hop happens before anything renders.
+ * traffic and the ad pages, and a throwaway mirror that serves the streams. A
+ * player URL on the public domain is a 404 — typed, bookmarked or crawled it
+ * simply is not there — so the links the site renders itself point straight at
+ * the mirror and a click still plays.
  *
- *   VIDEO_PLAYER_BLOCKED   hosts that must not serve a player    (hattitv.com)
- *   VIDEO_PLAYER_UNBLOCK   hosts that may, and receive the hop   (hattitv.vercel.app)
+ *   VIDEO_PLAYER_BLOCKED   hosts where player URLs 404          (hattitv.com)
+ *   VIDEO_PLAYER_UNBLOCK   the host that serves them            (hattitv.vercel.app)
  *
  * Both accept a comma-separated list. `www.` and the port are ignored when
  * comparing, so "hattitv.com" also covers "www.hattitv.com", and a scheme in
  * the unblock value is honoured ("http://localhost:3000" for local mirrors).
  * Leave VIDEO_PLAYER_BLOCKED empty to switch the gate off entirely.
+ *
+ * `proxy.ts` imports this module, so it has to stay free of `next/headers` and
+ * `next/navigation`: `lib/requestHost.ts` reads the host for server components,
+ * and the proxy rewrites a blocked URL to `app/player-not-found/page.tsx`.
  */
 
 /**
@@ -71,6 +76,16 @@ function hostList(value: string | undefined): string[] {
     .filter((host): host is string => Boolean(host));
 }
 
+/** Hosts where the player routes do not exist. Empty switches the gate off. */
+function blockedHosts(): string[] {
+  return hostList(process.env.VIDEO_PLAYER_BLOCKED);
+}
+
+/** Hosts that serve the player routes. */
+function mirrorHosts(): string[] {
+  return hostList(process.env.VIDEO_PLAYER_UNBLOCK);
+}
+
 /**
  * The first VIDEO_PLAYER_UNBLOCK entry as an origin, ready to prefix a path
  * with. Only the first one is used: a redirect has a single destination.
@@ -90,56 +105,78 @@ export function unblockOrigin(): string | null {
   }
 }
 
+/** True when this host must not serve players: their URLs 404 here. */
+export function isPlayerBlockedHost(host: string | null | undefined): boolean {
+  const current = normalizeHost(host);
+  return Boolean(current) && blockedHosts().includes(current as string);
+}
+
+/** True for the mirror — the host that does serve players. */
+export function isPlayerMirrorHost(host: string | null | undefined): boolean {
+  const current = normalizeHost(host);
+  return Boolean(current) && mirrorHosts().includes(current as string);
+}
+
+/**
+ * The origin that serves player pages for this request: the mirror on a host
+ * that blocks them, and "" on a host that serves them itself (the mirror, a
+ * preview deployment, local dev). Every link to a player page goes through
+ * `playerHref`, so a click works on either host.
+ */
+export function playerOrigin(host: string | null | undefined): string {
+  if (!isPlayerBlockedHost(host)) return "";
+  return unblockOrigin() ?? "";
+}
+
+/** A player path, made absolute on the mirror when this host does not serve it. */
+export function playerHref(
+  host: string | null | undefined,
+  path: string,
+): string {
+  return `${playerOrigin(host)}${path}`;
+}
+
 export type PlayerGateDecision =
   /** Serve the request normally. */
   | { action: "allow" }
-  /** Send this player page to the mirror, keeping its path and query. */
-  | { action: "redirect"; url: string }
+  /** The URL does not exist here: answer 404 without rendering the page. */
+  | { action: "notFound" }
   /** Serve it, but tell crawlers to leave the mirror's copy alone. */
   | { action: "noindex" };
 
 /**
  * The whole rule, in one place:
  *
- *   blocked host + player path  → redirect to the mirror (307, so the main
- *                                 domain stays the URL that answers)
- *   blocked host + anything else → normal page, main domain keeps its content
- *   mirror host                 → normal player, marked noindex so the
- *                                 temporary domain can never replace the main
- *                                 one in search results
+ *   blocked host + player path   → 404. A typed URL, a bookmark and a crawler
+ *                                  all get the same answer as a URL that never
+ *                                  existed, while the site's own links point at
+ *                                  the mirror so a click still plays
+ *   blocked host + anything else → the page the main domain is for
+ *   mirror host                  → players play, marked noindex so the
+ *                                  temporary domain can never replace the main
+ *                                  one in search results
  *   any other host (localhost, preview deployment) → untouched
  */
 export function playerGate(
   host: string | null | undefined,
   pathname: string,
-  search = "",
 ): PlayerGateDecision {
-  const blocked = hostList(process.env.VIDEO_PLAYER_BLOCKED);
   // No blocked host configured: the gate is off, which is what local `next dev`
   // and a single-domain deployment both want.
-  if (!blocked.length) return { action: "allow" };
+  if (!blockedHosts().length) return { action: "allow" };
 
-  const current = normalizeHost(host);
-  if (!current) return { action: "allow" };
-
-  if (!blocked.includes(current)) {
-    return hostList(process.env.VIDEO_PLAYER_UNBLOCK).includes(current)
-      ? { action: "noindex" }
-      : { action: "allow" };
+  if (isPlayerBlockedHost(host)) {
+    // Blocking with no mirror would 404 every player with nowhere for the
+    // traffic to go, so the gate stays open rather than taking it all down.
+    if (!unblockOrigin()) {
+      console.warn(
+        "[player-gate] VIDEO_PLAYER_BLOCKED is set but VIDEO_PLAYER_UNBLOCK is not — serving player pages directly.",
+      );
+      return { action: "allow" };
+    }
+    // Everything except the players themselves is a page this host is for.
+    return isPlayerPath(pathname) ? { action: "notFound" } : { action: "allow" };
   }
 
-  // The main domain keeps every page except the players themselves.
-  if (!isPlayerPath(pathname)) return { action: "allow" };
-
-  const origin = unblockOrigin();
-  if (!origin) {
-    // Blocking with no mirror would 404 every player on the site, so the gate
-    // stays open rather than taking playback down.
-    console.warn(
-      "[player-gate] VIDEO_PLAYER_BLOCKED is set but VIDEO_PLAYER_UNBLOCK is not — serving player pages directly.",
-    );
-    return { action: "allow" };
-  }
-
-  return { action: "redirect", url: `${origin}${pathname}${search}` };
+  return isPlayerMirrorHost(host) ? { action: "noindex" } : { action: "allow" };
 }

@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import TitleHero from "@/components/TitleHero";
+import { playerHref } from "@/lib/playerGate";
+import { requestHost } from "@/lib/requestHost";
 import { watchLabel, watchPath } from "@/lib/streaming";
 import MediaGrid from "@/components/MediaGrid";
 import SetupNotice from "@/components/SetupNotice";
@@ -182,6 +184,10 @@ export default async function TitlePage({
 
   const related = pickRelated(details);
 
+  // The player only exists on the mirror; the button has to say so, or it
+  // would link this host's own 404.
+  const host = await requestHost();
+
   const path = `/${category.slug}/${id}`;
   const crumbs = breadcrumbLd([
     { name: "Home", path: "/" },
@@ -201,7 +207,10 @@ export default async function TitlePage({
         backdrop={backdropUrl(details.backdrop_path)}
         title={title}
         trailerKey={trailerKey}
-        watchHref={watchPath(category.slug, category.mediaType, details.id)}
+        watchHref={playerHref(
+          host,
+          watchPath(category.slug, category.mediaType, details.id),
+        )}
         trailerHref={trailerKey ? `/${category.slug}/${id}/watch-trailer` : undefined}
         watchLabel={watchLabel(category.mediaType)}
       >

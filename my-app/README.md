@@ -120,46 +120,56 @@ rest of the page working.
 ## Player domain gate (main domain → mirror)
 
 The same build runs on two hosts. The main domain keeps the search traffic and
-never serves the embeds; a throwaway mirror (`*.vercel.app`, or anything else
-temporary) serves them.
+the title pages; the player URLs only exist on a throwaway mirror
+(`*.vercel.app`, or anything else temporary).
 
 ```bash
-VIDEO_PLAYER_BLOCKED=hattitv.com          # hosts where players are not served
-VIDEO_PLAYER_UNBLOCK=hattitv.vercel.app   # host that serves them, and receives the hop
+VIDEO_PLAYER_BLOCKED=hattitv.com          # hosts where player URLs 404
+VIDEO_PLAYER_UNBLOCK=hattitv.vercel.app   # the host that serves them
 ```
 
 Both accept a comma-separated list; `www.` and the port are ignored when
 matching, so `hattitv.com` also covers `www.hattitv.com`. Set the **same two
 values on both Vercel projects** — on the mirror the request arrives on the
-`vercel.app` host, which is not the blocked one, so nothing is redirected and
-the player simply runs.
+`vercel.app` host, which is not the blocked one, so nothing is 404ed and the
+player simply runs.
 
 | Request | Result |
 | --- | --- |
-| `hattitv.com/movies/1101383/watch-movie` | `307` → `hattitv.vercel.app/movies/1101383/watch-movie` |
-| `hattitv.com/tv-shows/108978/watch-series?season=2&episode=5` | `307` → same path + query on the mirror |
-| `hattitv.com/sports/football/{matchId}` | `307` → mirror |
-| `hattitv.vercel.app/tv-shows/108978/watch-series` | plays (response carries `x-robots-tag: noindex, follow`) |
-| `hattitv.com/movies/1101383` (detail page) | untouched |
-| `hattitv.com/sports`, `/sports/football`, `/news`, `/search` | untouched |
-| `localhost:3000` | untouched (the gate is off unless `VIDEO_PLAYER_BLOCKED` is set) |
+| `hattitv.com/sports/football/{matchId}` typed, bookmarked or crawled | **404** — as if the URL never existed |
+| `hattitv.com/movies/1101383/watch-movie` typed, bookmarked or crawled | **404** |
+| Clicking a fixture card on `hattitv.com/sports` | → `https://hattitv.vercel.app/sports/{sport}/{matchId}` |
+| Clicking *Watch Movie* on `hattitv.com/movies/1101383` | → `https://hattitv.vercel.app/movies/1101383/watch-movie` |
+| `hattitv.vercel.app/tv-shows/108978/watch-series?season=2&episode=5` | plays (response carries `x-robots-tag: noindex, follow`) |
+| `hattitv.com/movies/1101383` (detail page), `/sports`, `/sports/football`, `/news`, `/search` | untouched |
+| `localhost:3000` | untouched, and every player link stays relative |
 
-Gated paths are the two player routes — `/{category}/{id}/watch-movie`,
-`/{category}/{id}/watch-series` — and the live-match player
-`/sports/{sport}/{matchId}`. **Trailer pages stay on the main domain** (they
-embed YouTube, not a stream): add `|watch-trailer` to `PLAYER_PATHS` in
-`lib/playerGate.ts` to move them too.
+Gated paths are `/{category}/{id}/watch-movie`, `/{category}/{id}/watch-series`
+and the live-match player `/sports/{sport}/{matchId}`. **Trailer pages stay on
+the main domain** (they embed YouTube, not a stream): add `|watch-trailer` to
+`PLAYER_PATHS` in `lib/playerGate.ts` to move them too.
 
-Details worth knowing:
+How it fits together:
 
-- `307`, not `308` — the hop is temporary, so search engines keep the main
-  domain's URL as the one that answers the query.
-- The mirror's copies are `noindex, follow` so the temporary domain cannot
-  replace the main one in search results. Delete the `noindex` branch in
-  `proxy.ts` if you ever want the mirror indexed.
-- If `VIDEO_PLAYER_BLOCKED` is set but `VIDEO_PLAYER_UNBLOCK` is empty/misspelled,
-  the gate fails **open** (players are served directly and a warning is logged)
-  rather than taking playback down.
+- `lib/playerGate.ts` holds the whole rule, `proxy.ts` applies it at the edge.
+  A blocked URL is **rewritten** (not redirected) to `app/player-not-found`,
+  which calls `notFound()`: a real 404 with the app's not-found page, while the
+  address bar keeps the URL that was asked for. That is what a typed URL, a
+  bookmark and a crawler all need to see.
+- Links to players are built with `playerHref()` / `playerOrigin()`, which
+  return the mirror's origin on a blocked host and `""` everywhere else — so
+  clicks work, and on the mirror itself the links stay internal (no full page
+  reload between the mirror's own pages).
+- The mirror's responses are `noindex, follow`, so the temporary domain can
+  never replace the main domain in search results. Delete the `noindex` branch
+  in `proxy.ts` if you ever want the mirror indexed.
+- If `VIDEO_PLAYER_BLOCKED` is set but `VIDEO_PLAYER_UNBLOCK` is empty or
+  misspelled, the gate fails **open** (players are served directly and a warning
+  is logged) rather than 404ing the whole site with nowhere to send the traffic.
+- `lib/requestHost.ts` reads the host in server components. The pages that build
+  mirror links (`/`, `/[category]/[id]`, `/sports`, `/sports/[sport]`) therefore
+  render per request instead of being static — that is the cost of knowing which
+  host answered.
 - `NEXT_PUBLIC_SITE_URL` still points at `hattitv.com` in both deployments, so
   canonicals, sitemap and JSON-LD keep naming the main domain.
 # filmhouse

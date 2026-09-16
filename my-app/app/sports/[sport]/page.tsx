@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import SportsGrid from "@/components/SportsGrid";
 import SportsNav from "@/components/SportsNav";
+import { playerOrigin } from "@/lib/playerGate";
+import { requestHost } from "@/lib/requestHost";
 import { getMatches, getSports, isLive, sportIcon } from "@/lib/sports";
 import { SITE_NAME, breadcrumbLd, jsonLd } from "@/lib/site";
 
@@ -49,7 +51,10 @@ export default async function SportPage({
   const { sports, sport } = await findSport(id);
   if (!sport) notFound();
 
-  const matches = await getMatches(sport.id);
+  // Match players live on the mirror, so the cards have to link there on a host
+  // that 404s them; on the mirror (and in dev) this stays empty.
+  const [matches, host] = await Promise.all([getMatches(sport.id), requestHost()]);
+  const origin = playerOrigin(host);
   const live = matches.filter((match) => isLive(match));
   const upcoming = matches.filter((match) => !isLive(match));
 
@@ -79,10 +84,11 @@ export default async function SportPage({
         <SportsNav sports={sports} active={sport.id} />
 
         <div className="mt-8">
-          <SportsGrid title="Live Now" matches={live} accent />
+          <SportsGrid title="Live Now" matches={live} accent origin={origin} />
           <SportsGrid
             title="Upcoming"
             matches={upcoming}
+            origin={origin}
             empty={`No ${sport.name.toLowerCase()} fixtures scheduled at the moment.`}
           />
         </div>

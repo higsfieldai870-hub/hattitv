@@ -34,13 +34,25 @@ function BadgeFace({ match }: { match: SportsMatch }) {
   );
 }
 
-/** Links to /sports/{sport}/{matchId}. */
-export default function SportsMatchCard({ match }: { match: SportsMatch }) {
+/**
+ * Links to /sports/{sport}/{matchId}.
+ *
+ * That URL only exists on the host that serves players, so callers pass the
+ * mirror's origin (`playerOrigin()`) when they are rendering on one that does
+ * not: the card then points straight at the mirror instead of this host's 404.
+ */
+export default function SportsMatchCard({
+  match,
+  origin = "",
+}: {
+  match: SportsMatch;
+  origin?: string;
+}) {
   const live = isLive(match);
 
   return (
     <Link
-      href={`/sports/${match.sport}/${match.id}`}
+      href={`${origin}/sports/${match.sport}/${match.id}`}
       className="group relative w-full text-left transition-transform duration-300 ease-out hover:z-20 hover:scale-[1.03] focus-visible:z-20 focus-visible:scale-[1.03] focus:outline-none"
     >
       <div className="relative aspect-video w-full overflow-hidden rounded-xl bg-neutral-900 ring-1 ring-white/10 transition group-hover:ring-2 group-hover:ring-brand group-focus-visible:ring-2 group-focus-visible:ring-brand">

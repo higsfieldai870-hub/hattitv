@@ -2,6 +2,8 @@ import { Suspense } from "react";
 import HeroPlayer from "@/components/HeroPlayer";
 import HeroActions from "@/components/HeroActions";
 import SearchBox from "@/components/SearchBox";
+import { playerHref } from "@/lib/playerGate";
+import { requestHost } from "@/lib/requestHost";
 import { watchLabel, watchPath } from "@/lib/streaming";
 import {
   backdropUrl,
@@ -21,6 +23,10 @@ export default async function Hero() {
 
   const mediaType = getMediaType(featured);
   const title = getTitle(featured);
+
+  // The CTA has to point wherever the player actually lives: on a host that
+  // 404s player URLs that is the mirror, not this origin.
+  const host = await requestHost();
 
   // Trailer lookup is a second request; a missing one just leaves the backdrop.
   let trailerKey: string | null = null;
@@ -47,7 +53,10 @@ export default async function Hero() {
           {featured.overview}
         </p>
         <HeroActions
-          watchHref={watchPath(getCategorySlug(featured), mediaType, featured.id)}
+          watchHref={playerHref(
+            host,
+            watchPath(getCategorySlug(featured), mediaType, featured.id),
+          )}
           infoHref={`/${getCategorySlug(featured)}/${featured.id}`}
           watchLabel={watchLabel(mediaType)}
         />
