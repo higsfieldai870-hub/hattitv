@@ -79,7 +79,10 @@ export const metadata: Metadata = {
     shortcut: "/logo.png",
   },
   other: {
-    monetag: ["0f3b78e13540632d83b2a4d4a78384a1"],
+    monetag: [
+      "0f3b78e13540632d83b2a4d4a78384a1",
+      "6bc2a8d2c5d32ffa68fa5ed1988fcbe9",
+    ],
   },
 };
 
