@@ -9,9 +9,9 @@ import { playerGate } from "@/lib/playerGate";
  * On the public domain a player URL is rewritten to a route that calls
  * `notFound()`, so a typed URL, a bookmark and a crawler all get a plain 404
  * while the address bar keeps the URL they asked for. On the mirror the
- * opposite happens: players are served (and marked noindex, so the throwaway
- * domain can never take over the public one in search results) and every other
- * URL is sent back to the public domain.
+ * opposite happens: players and the home page are served (and marked noindex,
+ * so the throwaway domain can never take over the public one in search results)
+ * and every other URL is sent back to the public domain.
  *
  * Nothing on the public domain links to a player URL there: those links are
  * built with `playerHref()` and point at the mirror directly.

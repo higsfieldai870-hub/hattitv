@@ -6,15 +6,16 @@
  *   the public domain  is the site. Search traffic, title pages, news, search
  *                      and ads all live here, and a player URL is a 404 — typed,
  *                      bookmarked or crawled, it simply is not there.
- *   the mirror         exists to play and nothing else. Every link to a player
- *                      is built with `playerHref()` and points at it, and any
- *                      other URL on it (home, a title page, search) sends the
- *                      visitor back to the public domain.
+ *   the mirror         exists to play. Every link to a player is built with
+ *                      `playerHref()` and points at it. Its home page renders
+ *                      too, so the bare domain is not a dead hop, but any other
+ *                      URL on it (a title page, search, news) sends the visitor
+ *                      back to the public domain.
  *
  *   VIDEO_PLAYER_BLOCKED   public hosts: players 404, everything else lives
  *                          (hattitv.com)
- *   VIDEO_PLAYER_UNBLOCK   the mirror: players play, everything else bounces
- *                          (hattitv.vercel.app)
+ *   VIDEO_PLAYER_UNBLOCK   the mirror: players and the home page render,
+ *                          everything else bounces (hattitv.vercel.app)
  *
  * Both accept a comma-separated list. `www.` and the port are ignored when
  * comparing, so "hattitv.com" also covers "www.hattitv.com", and a scheme in
@@ -43,6 +44,16 @@ const PLAYER_PATHS = [
 /** True for a path that streams a title or a live match. */
 export function isPlayerPath(pathname: string): boolean {
   return PLAYER_PATHS.some((pattern) => pattern.test(pathname));
+}
+
+/**
+ * The one non-player page the mirror renders itself: its home page, so the bare
+ * domain opens on the site rather than bouncing. Every link on it except the
+ * hero's "Play" (a player, built with `playerHref()`) leads back to the public
+ * domain through the redirect below.
+ */
+function isMirrorHomePath(pathname: string): boolean {
+  return pathname === "/";
 }
 
 /**
@@ -189,8 +200,9 @@ export type PlayerGateDecision =
  *   mirror host + player path   → plays, marked noindex so the temporary
  *                                 domain can never replace the public one in
  *                                 search results
+ *   mirror host + home page     → renders, noindex for the same reason
  *   mirror host + anything else → back to the public domain, so the mirror
- *                                 only ever holds the player
+ *                                 only ever holds the player and its front door
  *   any other host (localhost, preview deployment) → untouched
  */
 export function playerGate(
@@ -218,7 +230,7 @@ export function playerGate(
   }
 
   if (isPlayerMirrorHost(host)) {
-    if (playerPath) return { action: "noindex" };
+    if (playerPath || isMirrorHomePath(pathname)) return { action: "noindex" };
 
     const url = mainUrlFor(pathname, search);
     // Unparseable public origin: better an unindexed page than a dead end.
