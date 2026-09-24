@@ -56,23 +56,17 @@ function BadgeFace({ match }: { match: SportsMatch }) {
 /**
  * Fixture card with the full title printed under the art, linking to
  * /sports/{sport}/{matchId}.
- *
- * That URL only exists on the host that serves players, so callers pass the
- * mirror's origin (`playerOrigin()`) when they are rendering on one that does
- * not: the card then points straight at the mirror instead of this host's 404.
  */
 export default function SportsMatchCard({
   match,
-  origin = "",
 }: {
   match: SportsMatch;
-  origin?: string;
 }) {
   const live = isLive(match);
 
   return (
     <Link
-      href={`${origin}/sports/${match.sport}/${match.id}`}
+      href={`/sports/${match.sport}/${match.id}`}
       title={match.title}
       className="group block w-full text-left focus:outline-none"
     >

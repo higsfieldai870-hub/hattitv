@@ -188,12 +188,12 @@ export function getWatchServers(
   const ref: TitleRef = { mediaType, tmdbId, season, episode };
 
   const drafts: ServerDraft[] = [
+    draftVidBolt(ref),
     draftVidSrc(ref),
     draftSuperEmbed(ref),
     standardEmbedDraft(VIDKING_BASE, "VidKing", ref),
     standardEmbedDraft(VIDCORE_BASE, "VidCore", ref),
     standardEmbedDraft(YAPGRID_BASE, "YapGrid", ref),
-    draftVidBolt(ref),
     standardEmbedDraft(TWOEMBED_BASE, "2Embed", ref),
   ];
   return drafts.map((server, index) => ({ ...server, number: index + 1 }));

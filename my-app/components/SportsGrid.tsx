@@ -7,7 +7,6 @@ export default function SportsGrid({
   matches,
   accent = false,
   empty,
-  origin = "",
 }: {
   title: string;
   matches: SportsMatch[];
@@ -15,8 +14,6 @@ export default function SportsGrid({
   accent?: boolean;
   /** Shown in place of the grid when `matches` is empty. */
   empty?: string;
-  /** Mirror origin for the fixture links; "" keeps them on this host. */
-  origin?: string;
 }) {
   if (!matches.length && !empty) return null;
 
@@ -50,7 +47,7 @@ export default function SportsGrid({
       {matches.length ? (
         <div className="grid grid-cols-2 gap-x-3 gap-y-5 sm:grid-cols-[repeat(auto-fill,minmax(15rem,1fr))] sm:gap-x-4 sm:gap-y-6">
           {matches.map((match) => (
-            <SportsMatchCard key={match.id} match={match} origin={origin} />
+            <SportsMatchCard key={match.id} match={match} />
           ))}
         </div>
       ) : (

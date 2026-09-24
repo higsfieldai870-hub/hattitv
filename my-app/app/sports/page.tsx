@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import SportsGrid from "@/components/SportsGrid";
 import SportsNav from "@/components/SportsNav";
-import { playerOrigin } from "@/lib/playerGate";
-import { requestHost } from "@/lib/requestHost";
 import { getLiveMatches, getMatches, getSports, isLive } from "@/lib/sports";
 import { SITE_NAME, breadcrumbLd, jsonLd } from "@/lib/site";
 
@@ -23,17 +21,11 @@ export const metadata: Metadata = {
 };
 
 export default async function SportsPage() {
-  const [sports, live, today, host] = await Promise.all([
+  const [sports, live, today] = await Promise.all([
     getSports(),
     getLiveMatches(),
     getMatches(),
-    requestHost(),
   ]);
-
-  // Match players live on the mirror, so the cards have to link there on a
-  // host that 404s them; on the mirror (and in dev) this stays empty and the
-  // links keep the visitor here.
-  const origin = playerOrigin(host);
 
   // "Today" is everything still to come; anything already running is shown
   // once, in the live block above it.
@@ -70,13 +62,11 @@ export default async function SportsPage() {
             title="Live Now"
             matches={live}
             accent
-            origin={origin}
             empty="Nothing kicking off right this second — check today's schedule below."
           />
           <SportsGrid
             title="Today's Schedule"
             matches={upcoming}
-            origin={origin}
             empty="No fixtures listed for today. Pick a sport above to see its full card."
           />
         </div>

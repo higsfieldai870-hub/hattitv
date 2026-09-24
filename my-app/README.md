@@ -47,12 +47,12 @@ the provider's own player in an iframe:
 
 | Button | Provider   | Base URL (override)                    |
 | ------ | ---------- | -------------------------------------- |
-| Server 1 | VidSrc    | `https://vidsrc.link/embed` (`VIDSRC_BASE_URL`)    |
-| Server 2 | SuperEmbed| `https://multiembed.mov` (`SUPEREMBED_BASE_URL`)  |
-| Server 3 | VidKing   | `https://www.vidking.net` (`VIDKING_BASE_URL`)     |
-| Server 4 | VidCore   | `https://vidcore.org` (`VIDCORE_BASE_URL`)         |
-| Server 5 | YapGrid   | `https://yapgrid.com` (`YAPGRID_BASE_URL`)         |
-| Server 6 | VidBolt   | `https://vidbolt.pro` (`VIDBOLT_BASE_URL`)         |
+| Server 1 | VidBolt   | `https://vidbolt.pro` (`VIDBOLT_BASE_URL`)         |
+| Server 2 | VidSrc    | `https://vidsrc.link/embed` (`VIDSRC_BASE_URL`)    |
+| Server 3 | SuperEmbed| `https://multiembed.mov` (`SUPEREMBED_BASE_URL`)  |
+| Server 4 | VidKing   | `https://www.vidking.net` (`VIDKING_BASE_URL`)     |
+| Server 5 | VidCore   | `https://vidcore.org` (`VIDCORE_BASE_URL`)         |
+| Server 6 | YapGrid   | `https://yapgrid.com` (`YAPGRID_BASE_URL`)         |
 | Server 7 | 2Embed    | `https://www.2embed.cc` (`TWOEMBED_BASE_URL`)      |
 
 Requests are keyed by TMDB id (plus season/episode on TV pages). URL shapes:
@@ -116,67 +116,3 @@ servers. The other three need configuring:
 Every provider is optional and every lookup is failure-tolerant: a host that is
 down, rate-limited or has changed shape contributes no servers and leaves the
 rest of the page working.
-
-## Player domain gate (site ↔ player-only mirror)
-
-The same build runs on two hosts, and they are mirror images of each other.
-
-```bash
-VIDEO_PLAYER_BLOCKED=hattitv.com          # the whole site; player URLs 404 here
-VIDEO_PLAYER_UNBLOCK=hattitv.vercel.app   # only the player; everything else bounces
-```
-
-Both accept a comma-separated list; `www.` and the port are ignored when
-matching, so `hattitv.com` also covers `www.hattitv.com`, and the first entry of
-each list is the one used for redirects. Set the **same two values on both Vercel
-projects** — the host of the request decides, so nothing is hard-coded per
-deployment.
-
-| Request | Result |
-| --- | --- |
-| `hattitv.com/sports/football/{matchId}` typed, bookmarked or crawled | **404** — as if the URL never existed |
-| `hattitv.com/movies/1101383/watch-movie` typed, bookmarked or crawled | **404** |
-| Clicking a fixture card on `hattitv.com/sports` | → `https://hattitv.vercel.app/sports/{sport}/{matchId}` |
-| Clicking *Watch Movie* on `hattitv.com/movies/1101383` (or the hero CTA) | → `https://hattitv.vercel.app/movies/1101383/watch-movie` |
-| `hattitv.vercel.app/movies/1101383/watch-movie` | plays, `x-robots-tag: noindex, follow` |
-| `hattitv.vercel.app/` — or any other non-player URL on the mirror | **307 back to `hattitv.com`**, same path and query |
-| `hattitv.com/movies/1101383`, `/sports`, `/sports/football`, `/news`, `/search` | the site, untouched |
-| `localhost:3000` | untouched, and every player link stays relative |
-
-Gated player paths are `/{category}/{id}/watch-movie`, `/{category}/{id}/watch-series`
-and the live-match player `/sports/{sport}/{matchId}`. **Trailer pages stay on the
-site** (they embed YouTube, not a stream): add `|watch-trailer` to `PLAYER_PATHS`
-in `lib/playerGate.ts` to move them too.
-
-So on the mirror, the nav bar, a related-title card, the *back* link and search
-all take the visitor back to the site — only the player page itself stays there.
-Assets are never touched: `proxy.ts`'s matcher excludes `_next/static`,
-`_next/image`, `/api/` and file extensions, or the player page would lose its own
-CSS, JS and images.
-
-How it fits together:
-
-- `lib/playerGate.ts` holds the whole rule, `proxy.ts` applies it at the edge.
-  - Public host + player path → **rewrite** (not redirect) to
-    `app/player-not-found`, which calls `notFound()`: a real 404 with the app's
-    not-found page while the address bar keeps the URL that was asked for. That
-    is what a typed URL, a bookmark and a crawler all need to see.
-  - Mirror host + anything but a player → `307` to the same path on the public
-    domain (`no-store`, so nothing caches a hop that an env var can move).
-- Links to players are built with `playerHref()` / `playerOrigin()`, which return
-  the mirror's origin on the site and `""` everywhere else — so clicks work, and
-  on the mirror itself those links stay internal (no full page reload between
-  player pages).
-- The mirror's player responses are `noindex, follow`, so the temporary domain
-  can never replace the site in search results. Delete the `noindex` branch in
-  `proxy.ts` if you ever want the mirror indexed.
-- If `VIDEO_PLAYER_BLOCKED` is set but `VIDEO_PLAYER_UNBLOCK` is empty or
-  misspelled, the gate fails **open** (players are served directly and a warning
-  is logged) rather than 404ing the whole site with nowhere to send the traffic.
-- `lib/requestHost.ts` reads the host in server components. The pages that build
-  mirror links (`/`, `/[category]/[id]`, `/sports`, `/sports/[sport]`) therefore
-  render per request instead of being static — that is the cost of knowing which
-  host answered.
-- `NEXT_PUBLIC_SITE_URL` still points at `hattitv.com` in both deployments, so
-  canonicals, sitemap and JSON-LD keep naming the site.
-# filmhouse

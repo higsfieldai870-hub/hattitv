@@ -132,17 +132,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <main className="flex-1">{children}</main>
         <Footer />
 
-        {/* <Script
-          id="quge5-tag"
-          src="https://quge5.com/88/tag.min.js"
-          data-zone="278532"
-          data-cfasync="false"
-          strategy="beforeInteractive"
-        /> */}
-
-        {/* Monetag in-page tag (zone 11799664). */}
         <Script
-          id="monetag-tag"
           src="https://al5sm.com/tag.min.js"
           data-zone="11799664"
           strategy="afterInteractive"
